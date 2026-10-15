@@ -5,6 +5,16 @@
 
 ![X榜单页面](preview.png)
 
+## 在线演示
+
+纯静态演示站(演示数据):**https://xiongma0-at.github.io/x-bangdan/**
+
+- 推送 `main` 后由 [deploy-pages.yml](.github/workflows/deploy-pages.yml) 自动构建发布。
+- 构建时带 `NEXT_PUBLIC_STATIC_DEMO=1`,页面跳过 `/api/tweets`,直接算 `data/mock-tweets.ts` 里的数据。
+- GitHub Pages 只能托管静态文件、跑不了 route handler,所以构建前工作流会把 `app/api` 临时挪出,
+  只导出页面(源码不受影响)。
+- 想要真实数据 + 每小时抓取,请部署到 Vercel(见下),Pages 只当"给人看效果"的门面。
+
 ## 快速开始(本地 1 分钟)
 
 ```bash

@@ -29,6 +29,12 @@ const TIME_TABS: { id: TimeRange; label: string; hint: string }[] = [
   { id: "week", label: "本周飙升", hint: "按增速排序" },
 ];
 
+/**
+ * GitHub Pages 那种纯静态托管没有后端,构建时会把这个变量内联进来,
+ * 页面直接用本地演示数据,不再去打 /api/tweets(Vercel 上是 0,走的正常接口)。
+ */
+const STATIC_DEMO = process.env.NEXT_PUBLIC_STATIC_DEMO === "1";
+
 /** 首屏用本地演示数据直接渲染,不转圈;随后再拉 /api/tweets 换成实时数据。 */
 function buildFallback(range: TimeRange, category: string, query: string): RankedTweet[] {
   const now = new Date();
@@ -70,14 +76,21 @@ export default function XBangDanPage() {
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [tweets, setTweets] = useState<RankedTweet[] | null>(null);
   const [source, setSource] = useState<TweetsResponse["meta"]["source"]>("mock");
-  const [refreshing, setRefreshing] = useState(false);
+  const [refreshing, setRefreshing] = useState(!STATIC_DEMO);
   const [updatedAt, setUpdatedAt] = useState<string | null>(null);
 
-  // 拉取榜单(200ms 防抖,避免边打字边打接口)
+  // 拉取榜单(静态演示站直接算本地数据;正常部署 200ms 防抖打接口)
   useEffect(() => {
     const controller = new AbortController();
 
     const timer = setTimeout(async () => {
+      if (STATIC_DEMO) {
+        setTweets(buildFallback(timeFilter, selectedCategory, searchQuery));
+        setSource("mock");
+        setUpdatedAt(new Date().toISOString());
+        return;
+      }
+
       setRefreshing(true);
       const params = new URLSearchParams({
         range: timeFilter,

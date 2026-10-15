@@ -1,0 +1,58 @@
+name: deploy-github-pages
+
+# 把榜单前端作为纯静态站点发到 GitHub Pages(演示数据版)。
+# 想跑真实数据 + 每小时抓取的完整版请部署到 Vercel(见 README)。
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # GitHub Pages 只能托管静态文件,route handler 跑不了。
+      # 所以构建前把 app/api 临时挪走,只导出页面;源码本身不受影响。
+      - name: Build static demo
+        run: |
+          mv app/api /tmp/api-routes
+          STATIC_EXPORT=1 \
+          PAGES_BASE_PATH="/${{ github.event.repository.name }}" \
+          NEXT_PUBLIC_STATIC_DEMO=1 \
+          npm run build
+          touch out/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: out
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
