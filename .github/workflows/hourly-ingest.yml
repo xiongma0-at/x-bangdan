@@ -1,0 +1,25 @@
+name: hourly-x-ingest
+
+# Vercel Hobby 套餐的 Cron 只支持「每天一次」,想每小时更新用这个跑:
+# GitHub Actions 是免费的,定时打你自己的 /api/cron/fetch-x 接口即可。
+# 需要在仓库 Settings → Secrets and variables → Actions 里配:
+#   SITE_URL     = https://你的域名
+#   CRON_SECRET  = 和 Vercel 环境变量里那个一样的值
+
+on:
+  schedule:
+    - cron: "5 * * * *"
+  workflow_dispatch:
+
+jobs:
+  trigger:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger ingestion endpoint
+        run: |
+          code=$(curl -s -o /tmp/body.json -w "%{http_code}" \
+            -H "Authorization: Bearer ${{ secrets.CRON_SECRET }}" \
+            "${{ secrets.SITE_URL }}/api/cron/fetch-x")
+          echo "HTTP $code"
+          cat /tmp/body.json
+          test "$code" = "200"

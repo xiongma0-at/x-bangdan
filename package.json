@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "fetch:x": "node scripts/fetch-x.mjs",
+    "fetch:x:dry": "node scripts/fetch-x.mjs --source=mock --dry-run"
   },
   "dependencies": {
+    "lucide-react": "^1.57.0",
     "next": "16.4.1",
     "react": "19.3.0",
     "react-dom": "19.3.0"
