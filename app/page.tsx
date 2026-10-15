@@ -2,6 +2,7 @@
 "use client";
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import {
   Flame,
   TrendingUp,
@@ -16,6 +17,7 @@ import {
   Sparkles,
   Gift,
   RefreshCw,
+  Trophy,
 } from "lucide-react";
 
 import { mockTweets } from "@/data/mock-tweets";
@@ -170,22 +172,33 @@ export default function XBangDanPage() {
             </div>
           </div>
 
-          {/* 时间维度切换 */}
-          <div className="flex items-center bg-zinc-900 p-1 rounded-lg border border-zinc-800 text-xs shrink-0">
-            {TIME_TABS.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setTimeFilter(tab.id)}
-                title={tab.hint}
-                className={`px-3 py-1.5 rounded-md font-medium transition-all ${
-                  timeFilter === tab.id
-                    ? "bg-zinc-800 text-white shadow-sm"
-                    : "text-zinc-400 hover:text-zinc-200"
-                }`}
-              >
-                {tab.label}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              href="/creators"
+              className="hidden sm:flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg bg-violet-500/10 border border-violet-500/25 text-violet-300 hover:bg-violet-500/20 transition-colors"
+              title="按作者聚合的涨粉榜"
+            >
+              <Trophy className="w-3.5 h-3.5" />
+              涨粉榜
+            </Link>
+
+            {/* 时间维度切换 */}
+            <div className="flex items-center bg-zinc-900 p-1 rounded-lg border border-zinc-800 text-xs shrink-0">
+              {TIME_TABS.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setTimeFilter(tab.id)}
+                  title={tab.hint}
+                  className={`px-3 py-1.5 rounded-md font-medium transition-all ${
+                    timeFilter === tab.id
+                      ? "bg-zinc-800 text-white shadow-sm"
+                      : "text-zinc-400 hover:text-zinc-200"
+                  }`}
+                >
+                  {tab.label}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
       </header>

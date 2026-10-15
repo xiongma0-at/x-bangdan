@@ -7,7 +7,10 @@
 
 ## 在线演示
 
-纯静态演示站(演示数据):**https://xiongma0-at.github.io/x-bangdan/**
+纯静态演示站(演示数据,推送 `main` 自动发布):
+
+- 🔥 **爆款榜**:https://xiongma0-at.github.io/x-bangdan/
+- 🏆 **涨粉榜**:https://xiongma0-at.github.io/x-bangdan/creators/
 
 - 推送 `main` 后由 [deploy-pages.yml](.github/workflows/deploy-pages.yml) 自动构建发布。
 - 构建时带 `NEXT_PUBLIC_STATIC_DEMO=1`,页面跳过 `/api/tweets`,直接算 `data/mock-tweets.ts` 里的数据。
@@ -33,18 +36,23 @@ npm run build && npm start   # 生产模式
 
 ```
 app/
-  page.tsx                  # 榜单页面(客户端组件:筛选/搜索/复制)
-  api/tweets/route.ts       # 榜单数据接口,支持 ?range= &category= &q= &limit=
+  page.tsx                  # 爆款榜页面(客户端组件:筛选/搜索/复制)
+  creators/page.tsx         # 涨粉榜页面(按作者聚合)
+  api/tweets/route.ts       # 榜单接口,支持 ?range= &category= &q= &limit=
+  api/creators/route.ts     # 涨粉榜接口(作者聚合 + 指数排序)
   api/cron/fetch-x/route.ts # Vercel Cron 定时抓取入口(CRON_SECRET 鉴权)
 lib/
-  score.ts                  # 打分与排序(页面上的分数都从这里算)
+  score.ts                  # 单条推文打分与排序
+  creators.ts               # 作者聚合 + 涨粉潜力指数
   x-pipeline.mjs            # 抓取 → 清洗 → 打分类 → 过门槛 → 入库(零依赖)
   types.ts / format.ts / tweets.ts
-data/mock-tweets.ts         # 演示数据(数据库为空时兜底)
+data/mock-tweets.ts         # 演示数据(数据库为空时兜底):18 条推文 / 10 位作者
 supabase/schema.sql         # 建表脚本:推文表 + 运行日志 + 榜单视图 + RLS
 scripts/fetch-x.mjs         # 本地 / crontab 抓取脚本
 vercel.json                 # Cron:每小时 05 分触发
-.github/workflows/hourly-ingest.yml  # 免费替代方案(Vercel Hobby 的 Cron 只能每天一次)
+.github/workflows/
+  deploy-pages.yml          # 推送 main 自动发 GitHub Pages(静态演示)
+  hourly-ingest.yml         # 免费的小时级定时抓取(Vercel Hobby 的 Cron 只能每天一次)
 ```
 
 ## 爆款算法
@@ -59,6 +67,21 @@ score    = round(ln(1 + rawScore) / ln(1 + 20000) × 100, 1)   # 对数压缩成
   所以刚发几小时就爆的推文会排在大号老推文前面。
 - **想调权重**：前端改 `lib/score.ts` 的 `SCORE_WEIGHTS` / `REFERENCE_SCORE`；
   数据库侧同步改 `supabase/schema.sql` 里 `raw_score` 生成列和 `heat_score()`。
+
+### 涨粉潜力指数(涨粉榜)
+
+爆款榜看"这条推文火不火"，涨粉榜看"这个人值不值得关注"，所以把同一位作者窗口内的上榜推文聚起来算：
+
+```
+index = 互动总量(70%) + 稳定输出(20%) + 收藏密度(10%)
+      = 热力值(该作者所有上榜推文加权互动分之和) × 0.7
+      + min(1, 上榜条数 / 5) × 100 × 0.2        # 上榜 5 条即满分
+      + min(1, 平均收藏 / 2000) × 100 × 0.1     # 平均收藏 2000 即满分
+```
+
+设计意图：**一次运气爆款 ≠ 值得关注**。上榜 3 条以上的作者会明显压过只有 1 条超爆款的作者，
+这才是"谁在稳定出爆款"的答案。参数在 `lib/creators.ts` 的 `CREATOR_WEIGHTS` /
+`CONSISTENCY_TARGET` / `DENSITY_TARGET` 里，想调"稳定输出"的权重直接改。
 
 ## 接真实数据(3 步)
 
